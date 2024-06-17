@@ -19,7 +19,7 @@ use fyrox::core::log::Log;
 use fyrox::core::{ComponentProvider, TypeUuidProvider, Uuid, uuid};
 use fyrox::script::constructor::ScriptConstructor;
 use fyrox::script::{Script, ScriptTrait};
-use fyrox::walkdir::WalkDir;
+use fyrox::walkdir::{DirEntry, WalkDir};
 use crate::lua_utils::log_error;
 use crate::script::{LuaScript, ScriptDefinition, ScriptMetadata};
 
@@ -51,10 +51,13 @@ impl ScriptTrait for TestScript {
 }
 
 impl Plugin for LuaPlugin {
-    fn register(&self, _context: PluginRegistrationContext) {
+    fn register(&self, context: PluginRegistrationContext) {
+        // mlua has approach with lifetimes that makes very difficult storing Lua types
+        // here and there in Rust. But we need a single Lua VM instance for the whole life
+        // of game process, so that's ok to make it 'static.
         let lua: &'static mut Lua = Box::leak(Box::new(Lua::new()) );
 
-        _context.serialization_context.script_constructors.add::<TestScript>("TestScript");
+        context.serialization_context.script_constructors.add::<TestScript>("TestScript");
 
         log_error(
             "set 'package.path'",
@@ -62,55 +65,8 @@ impl Plugin for LuaPlugin {
             ).eval::<()>());
 
         for entry in WalkDir::new("scripts").into_iter().flatten() {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            let metadata = ScriptMetadata::parse_file(entry.path());
-            let metadata = match metadata {
-                Ok(it) => it,
-                Err(err) => {
-                    Log::err(format!("failed to load script from file {}: {}", &entry.path().to_string_lossy(), err));
-                    continue;
-                }
-            };
-
-            let class_loading = lua.load("return function(x) require(x) end")
-                .eval::<Function>()
-                .and_then(|it| it.call::<_, ()>(metadata.class.clone()));
-            match class_loading {
-                Ok(_) => {}
-                Err(err) => {
-                    Log::err(format!("Failed to load Lua class {:?}: {}", &metadata.class, err));
-                    continue;
-                }
-            }
-
-            let name = metadata.class;
-            let uuid = metadata.uuid;
-
-            let assembly_name = "scripts/**.lua";
-            let definition = Arc::new(ScriptDefinition {
-                metadata,
-                assembly_name,
-            });
-
-            _context
-                .serialization_context
-                .script_constructors
-                .add_custom(
-                    uuid,
-                    ScriptConstructor {
-                        constructor: Box::new(move || {
-                            Script::new(LuaScript::new(&definition))
-                        }),
-                        name: name.to_string(),
-                        source_path: entry.path().to_string_lossy().to_string().leak(),
-                        assembly_name,
-                    },
-                );
-            Log::info(format!("script found: {}", entry.path().to_string_lossy()))
+            load_script(&context, lua, &entry);
         }
-        // Register your scripts here.
     }
 
     fn init(&mut self, scene_path: Option<&str>, context: PluginContext) {
@@ -160,3 +116,55 @@ impl Plugin for LuaPlugin {
         self.scene = scene;
     }
 }
+
+    fn load_script(context: &PluginRegistrationContext, lua: &mut Lua, entry: &DirEntry) {
+        if !entry.file_type().is_file() {
+            return;
+        }
+        let metadata = ScriptMetadata::parse_file(entry.path());
+        let metadata = match metadata {
+            Ok(it) => it,
+            Err(errs) => {
+                for err in errs {
+                    Log::err(format!("failed to load script from file {}: {}", &entry.path().to_string_lossy(), err));
+                }
+                return;
+            }
+        };
+
+        let class_loading = lua.load("return function(x) require(x) end")
+            .eval::<Function>()
+            .and_then(|it| it.call::<_, ()>(metadata.class.clone()));
+        match class_loading {
+            Ok(_) => {}
+            Err(err) => {
+                Log::err(format!("Failed to load Lua class {:?}: {}", &metadata.class, err));
+                return;
+            }
+        }
+
+        let name = metadata.class;
+        let uuid = metadata.uuid;
+
+        let assembly_name = "scripts/**.lua";
+        let definition = Arc::new(ScriptDefinition {
+            metadata,
+            assembly_name,
+        });
+
+        context
+            .serialization_context
+            .script_constructors
+            .add_custom(
+                uuid,
+                ScriptConstructor {
+                    constructor: Box::new(move || {
+                        Script::new(LuaScript::new(&definition))
+                    }),
+                    name: name.to_string(),
+                    source_path: entry.path().to_string_lossy().to_string().leak(),
+                    assembly_name,
+                },
+            );
+        Log::info(format!("script registered: {}", entry.path().to_string_lossy()));
+    }

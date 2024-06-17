@@ -3,7 +3,6 @@ pub mod plugin;
 pub mod script;
 pub mod reflect_based;
 pub(crate) mod lua_utils;
-pub(crate) mod stacktrace;
 pub mod lua_bindings;
 
 use std::cell::RefCell;
@@ -27,4 +26,4 @@ thread_local! {
     pub(crate) static SCRIPT_CONTEXT: RefCell<Option<&'static mut ScriptContext<'static, 'static, 'static>>> = RefCell::new(None);
 }
 
-pub const SC_404: &'static str = "Fyrox ScriptContext is not available outside of main thread and ";
+pub const SC_404: &str = "Fyrox ScriptContext is not available outside of main thread and ";

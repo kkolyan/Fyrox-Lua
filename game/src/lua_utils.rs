@@ -14,7 +14,6 @@ use std::fmt::Display;
 use std::process::exit;
 use fyrox::core::log::Log;
 use fyrox::core::num_traits::ToPrimitive;
-use crate::stacktrace;
 
 #[macro_export]
 macro_rules! lua_error {
@@ -27,7 +26,7 @@ pub fn exit_on_error<T>(result: LuaResult<T>) -> T {
     match result {
         Ok(t) => t,
         Err(err) => {
-            println!("{}", stacktrace::prettify(err.to_string()));
+            println!("{}", err);
             exit(1);
         }
     }
@@ -38,7 +37,7 @@ pub fn log_error<T>(action_description: impl Display, result: LuaResult<T>) {
         Ok(_) => {},
         Err(err) => {
             Log::err(format!("Lua action failed: {}: {}", action_description, err));
-            println!("{}", stacktrace::prettify(err.to_string()));
+            println!("{}", err);
         }
     }
 }
