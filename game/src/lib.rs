@@ -1,29 +1,8 @@
-//! Game project.
 pub mod plugin;
-pub mod script;
-pub mod reflect_based;
+pub(crate) mod script;
 pub(crate) mod lua_utils;
-pub mod lua_bindings;
-
-use std::cell::RefCell;
-use fyrox::{
-    core::pool::Handle, core::reflect::prelude::*, core::visitor::prelude::*,
-    event::Event,
-    gui::message::UiMessage,
-    plugin::{Plugin, PluginContext, PluginRegistrationContext},
-    scene::Scene,
-};
-use std::path::Path;
-use mlua::Lua;
-
-// Re-export the engine.
-pub use fyrox;
-use fyrox::core::pool::Ref;
-use fyrox::script::ScriptContext;
-
-
-thread_local! {
-    pub(crate) static SCRIPT_CONTEXT: RefCell<Option<&'static mut ScriptContext<'static, 'static, 'static>>> = RefCell::new(None);
-}
-
-pub const SC_404: &str = "Fyrox ScriptContext is not available outside of main thread and ";
+pub(crate) mod lua_bindings;
+pub(crate) mod fyrox_setup;
+pub(crate) mod lua_reflect_bindings;
+pub(crate) mod node_based_expr;
+pub(crate) mod script_context;

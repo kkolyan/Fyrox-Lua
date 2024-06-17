@@ -1,6 +1,9 @@
 use std::ops::AddAssign;
 use fyrox::core::algebra::Vector3;
 use mlua::{UserData, UserDataFields, UserDataMethods, UserDataRef};
+use crate::lua_reflect_bindings;
+use crate::node_based_expr::NodeBasedExpression;
+use crate::script::{LuaScript, LuaScriptBasedExpr};
 
 pub struct Vector3Ud(pub Vector3<f32>);
 
@@ -29,6 +32,24 @@ impl UserData for Vector3Ud {
             this.0.add_assign(other.0);
             Ok(())
         });
+    }
+}
+
+impl UserData for LuaScript {
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        lua_reflect_bindings::populate_reflect_lua_bindings(methods);
+    }
+}
+
+impl UserData for LuaScriptBasedExpr {
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        lua_reflect_bindings::populate_reflect_lua_bindings(methods);
+    }
+}
+
+impl UserData for NodeBasedExpression {
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        lua_reflect_bindings::populate_reflect_lua_bindings(methods);
     }
 }
 
