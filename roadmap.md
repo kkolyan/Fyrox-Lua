@@ -13,7 +13,6 @@
      - Script constructor doesn't accept any context with reference to Plugin during creation
      - on the first callbacks where Plugin is available it's too late - visit and reflect are called before them.
   2. more sound solution is to convince mrDIMAS to store scripts in pools in engine. I don't think he will object if there is any physical reason, because he likes pools.
-  3. temporary solution is to address Script using the Node handle and index of script, and validate it using unique script instance ID, which is easy to generate using atomics if there is no such ID in Fyrox. But there is no ways for script to memorize such a reference, so this validation is to prevent bugs in the future.
 
 ## Alpha
 
