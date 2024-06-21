@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use fyrox::core::reflect::Reflect;
 use fyrox::core::visitor::Visit;
 use fyrox::scene::animation::absm::AnimationBlendingStateMachine;
@@ -16,7 +15,8 @@ use fyrox::scene::light::point::PointLight;
 use fyrox::scene::light::spot::SpotLight;
 use fyrox::scene::mesh::Mesh;
 use fyrox::scene::navmesh::NavigationalMesh;
-use fyrox::scene::node::{Node, NodeTrait};
+use fyrox::scene::node::Node;
+use fyrox::scene::node::NodeTrait;
 use fyrox::scene::particle_system::ParticleSystem;
 use fyrox::scene::pivot::Pivot;
 use fyrox::scene::ragdoll::Ragdoll;
@@ -25,6 +25,7 @@ use fyrox::scene::sound::listener::Listener;
 use fyrox::scene::sound::Sound;
 use fyrox::scene::sprite::Sprite;
 use fyrox::scene::terrain::Terrain;
+use std::collections::BTreeSet;
 
 fn main() {
     let mut ctx = Context::default();
@@ -67,18 +68,26 @@ fn collect_info<T: Reflect + Visit + Default>(ctx: &mut Context, name_override: 
     print_type(ctx, "", name_override, &stub);
 }
 
-fn print_type<T: Reflect + ?Sized>(ctx: &mut Context, prefix: &str, name_override: Option<&str>, value: &T) {
+fn print_type<T: Reflect + ?Sized>(
+    ctx: &mut Context,
+    prefix: &str,
+    name_override: Option<&str>,
+    value: &T,
+) {
     ctx.types.insert(value.type_name());
     // println!("{}type {}", prefix, name_override.unwrap_or(value.type_name()));
     value.as_array(&mut |array| {
-        if let Some(array) = array {
-
-        }
+        if let Some(array) = array {}
     });
     value.fields_info(&mut |fields| {
         for field in fields {
             // println!("{}  field {} : {}{}", prefix, field.name, field.type_name, if field.read_only { " (readonly)" } else { "" });
-            print_type(ctx, format!("  {}", prefix).as_str(), None, field.reflect_value);
+            print_type(
+                ctx,
+                format!("  {}", prefix).as_str(),
+                None,
+                field.reflect_value,
+            );
         }
     });
 }

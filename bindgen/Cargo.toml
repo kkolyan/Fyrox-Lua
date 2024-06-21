@@ -1,0 +1,12 @@
+[package]
+name = "bindgen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+component = "0.1.1"
+rustfmt = "0.10.0"
+syn = {version = "2.0.66", features = ["full", "extra-traits"]}
+rustdoc-types = "0.26.0"
+rustdoc-json = "0.9.1"
+serde_json = "1.0.117"

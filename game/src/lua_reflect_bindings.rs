@@ -1,13 +1,19 @@
-use mlua::{FromLua, Lua, MetaMethod, Result as LuaResult, UserData, UserDataMethods, Value};
-use std::path::PathBuf;
-use fyrox::core::algebra::Vector3;
-use fyrox::core::ImmutableString;
-use fyrox::core::reflect::{Reflect};
-use fyrox::script::ScriptContext;
-use crate::{lua_error};
 use crate::lua_bindings::Vector3Ud;
+use crate::lua_error;
 use crate::lua_utils::OptionX;
-use crate::script_context::{borrow_script_context};
+use crate::script_context::with_script_context;
+use fyrox::core::algebra::Vector3;
+use fyrox::core::reflect::Reflect;
+use fyrox::core::ImmutableString;
+use fyrox::script::ScriptContext;
+use mlua::FromLua;
+use mlua::Lua;
+use mlua::MetaMethod;
+use mlua::Result as LuaResult;
+use mlua::UserData;
+use mlua::UserDataMethods;
+use mlua::Value;
+use std::path::PathBuf;
 
 /// This module helps to expose fields of Reflect-supported structs to Lua.
 pub trait ReflectUserData: UserData {
@@ -16,16 +22,21 @@ pub trait ReflectUserData: UserData {
     /// returns (`owner`, `path`)
     /// `owner` is the Rust reference to the object that owns data
     /// `path` is the chain of access relative to `owner` result that leads to the value this instance represents
-    fn address<'a>(&'a mut self, sc: &'a mut ScriptContext) -> LuaResult<(&'a mut dyn Reflect, &[LuaTableKey])>;
+    fn address<'a>(
+        &'a mut self,
+        sc: &'a mut ScriptContext,
+    ) -> LuaResult<(&'a mut dyn Reflect, &[LuaTableKey])>;
 
     /// creates new instance based on the same `owner`, but with different `path`
     fn create_sibling(&self, path: Vec<LuaTableKey>) -> LuaResult<Self::RefType>;
 }
 
 /// adds meta methods to access fields exposed by Fyrox reflection from Lua
-pub fn populate_reflect_lua_bindings<'a, T: ReflectUserData, M: UserDataMethods<'a, T>>(methods: &mut M) {
+pub fn populate_reflect_lua_bindings<'a, T: ReflectUserData, M: UserDataMethods<'a, T>>(
+    methods: &mut M,
+) {
     methods.add_meta_method_mut(MetaMethod::Index, |lua, this, key: LuaTableKey| {
-        borrow_script_context(|sc| {
+        with_script_context(|sc| {
             let (node, path) = this.address(sc)?;
 
             let mut extended_path = path.to_vec();
@@ -33,29 +44,32 @@ pub fn populate_reflect_lua_bindings<'a, T: ReflectUserData, M: UserDataMethods<
 
             let mut lua_result = None;
 
-            get_terminal_node_of_path_mut(node, &extended_path, &mut |result| {
-                match result {
-                    Ok(result) => {
-                        lua_result = None
-                            .or_else(|| String::fyrox_to_lua(result, lua))
-                            .or_else(|| PathBuf::fyrox_to_lua(result, lua))
-                            .or_else(|| ImmutableString::fyrox_to_lua(result, lua))
-                            .or_else(|| i8::fyrox_to_lua(result, lua))
-                            .or_else(|| i16::fyrox_to_lua(result, lua))
-                            .or_else(|| i32::fyrox_to_lua(result, lua))
-                            .or_else(|| i64::fyrox_to_lua(result, lua))
-                            .or_else(|| u8::fyrox_to_lua(result, lua))
-                            .or_else(|| u16::fyrox_to_lua(result, lua))
-                            .or_else(|| u32::fyrox_to_lua(result, lua))
-                            .or_else(|| u64::fyrox_to_lua(result, lua))
-                            .or_else(|| usize::fyrox_to_lua(result, lua))
-                            .or_else(|| isize::fyrox_to_lua(result, lua))
-                            .or_else(|| f32::fyrox_to_lua(result, lua))
-                            .or_else(|| f64::fyrox_to_lua(result, lua))
-                            .or_else(|| bool::fyrox_to_lua(result, lua))
-                        ;
-                    }
-                    Err(err) => lua_result = Some(Err(lua_error!("failed to evaluate path {}: {}", format_path(&extended_path), err)))
+            get_terminal_node_of_path_mut(node, &extended_path, &mut |result| match result {
+                Ok(result) => {
+                    lua_result = None
+                        .or_else(|| String::fyrox_to_lua(result, lua))
+                        .or_else(|| PathBuf::fyrox_to_lua(result, lua))
+                        .or_else(|| ImmutableString::fyrox_to_lua(result, lua))
+                        .or_else(|| i8::fyrox_to_lua(result, lua))
+                        .or_else(|| i16::fyrox_to_lua(result, lua))
+                        .or_else(|| i32::fyrox_to_lua(result, lua))
+                        .or_else(|| i64::fyrox_to_lua(result, lua))
+                        .or_else(|| u8::fyrox_to_lua(result, lua))
+                        .or_else(|| u16::fyrox_to_lua(result, lua))
+                        .or_else(|| u32::fyrox_to_lua(result, lua))
+                        .or_else(|| u64::fyrox_to_lua(result, lua))
+                        .or_else(|| usize::fyrox_to_lua(result, lua))
+                        .or_else(|| isize::fyrox_to_lua(result, lua))
+                        .or_else(|| f32::fyrox_to_lua(result, lua))
+                        .or_else(|| f64::fyrox_to_lua(result, lua))
+                        .or_else(|| bool::fyrox_to_lua(result, lua));
+                }
+                Err(err) => {
+                    lua_result = Some(Err(lua_error!(
+                        "failed to evaluate path {}: {}",
+                        format_path(&extended_path),
+                        err
+                    )))
                 }
             });
 
@@ -65,20 +79,20 @@ pub fn populate_reflect_lua_bindings<'a, T: ReflectUserData, M: UserDataMethods<
             })
         })
     });
-    methods.add_meta_method_mut(MetaMethod::NewIndex, |lua, this, (key, value): (LuaTableKey, Value)| {
-        borrow_script_context(|sc| {
-            let (node, path) = this.address(sc)?;
+    methods.add_meta_method_mut(
+        MetaMethod::NewIndex,
+        |lua, this, (key, value): (LuaTableKey, Value)| {
+            with_script_context(|sc| {
+                let (node, path) = this.address(sc)?;
 
-            let mut extended_path = path.to_vec();
-            extended_path.push(key);
+                let mut extended_path = path.to_vec();
+                extended_path.push(key);
 
-            let value = &value;
+                let value = &value;
 
-            let mut lua_result = None;
+                let mut lua_result = None;
 
-
-            get_terminal_node_of_path_mut(node, &extended_path, &mut |result| {
-                match result {
+                get_terminal_node_of_path_mut(node, &extended_path, &mut |result| match result {
                     Ok(result) => {
                         lua_result = None
                             .or_else(|| String::lua_to_fyrox(result, value))
@@ -96,16 +110,21 @@ pub fn populate_reflect_lua_bindings<'a, T: ReflectUserData, M: UserDataMethods<
                             .or_else(|| isize::lua_to_fyrox(result, value))
                             .or_else(|| f32::lua_to_fyrox(result, value))
                             .or_else(|| f64::lua_to_fyrox(result, value))
-                            .or_else(|| bool::lua_to_fyrox(result, value))
-                        ;
+                            .or_else(|| bool::lua_to_fyrox(result, value));
                     }
-                    Err(err) => lua_result = Some(Err(lua_error!("failed to evaluate path {}: {}", format_path(&extended_path), err)))
-                }
-            });
+                    Err(err) => {
+                        lua_result = Some(Err(lua_error!(
+                            "failed to evaluate path {}: {}",
+                            format_path(&extended_path),
+                            err
+                        )))
+                    }
+                });
 
-            lua_result.unwrap_or_else(|| Err(lua_error!("Type is not settable")))
-        })
-    });
+                lua_result.unwrap_or_else(|| Err(lua_error!("Type is not settable")))
+            })
+        },
+    );
 }
 
 macro_rules! fyrox_and_lua_numbers {
@@ -140,46 +159,34 @@ fyrox_and_lua_numbers!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, 
 fn get_terminal_node_of_path_mut(
     source: &mut dyn Reflect,
     path: &[LuaTableKey],
-    result: &mut dyn FnMut(Result<&mut dyn Reflect, &str>)
+    result: &mut dyn FnMut(Result<&mut dyn Reflect, &str>),
 ) {
     if path.is_empty() {
         result(Ok(source));
     } else if path.len() > 1 {
-        get_value_by_lua_key_mut(
-            source,
-            path.first().unwrap(),
-            &mut |value| {
-                match value {
-                    Ok(value) => get_terminal_node_of_path_mut(value, &path[1..], result),
-                    Err(error) => result(Err(error)),
-                }
-            },
-        );
+        get_value_by_lua_key_mut(source, path.first().unwrap(), &mut |value| match value {
+            Ok(value) => get_terminal_node_of_path_mut(value, &path[1..], result),
+            Err(error) => result(Err(error)),
+        });
     } else {
-        get_value_by_lua_key_mut(
-            source,
-            path.first().unwrap(),
-            result,
-        );
+        get_value_by_lua_key_mut(source, path.first().unwrap(), result);
     }
 }
 
 fn get_value_by_lua_key_mut(
     source: &mut dyn Reflect,
     key: &LuaTableKey,
-    result: &mut dyn FnMut(Result<&mut dyn Reflect, &str>)
+    result: &mut dyn FnMut(Result<&mut dyn Reflect, &str>),
 ) {
     match key {
         LuaTableKey::Number(i) => {
-            source.as_array_mut(&mut |array| {
-                match array {
-                    None => {
-                        result(Err("index used to access non-indexable object"));
-                    }
-                    Some(array) => {
-                        if let Some(it) = array.reflect_index_mut(*i) {
-                            result(Ok(it));
-                        }
+            source.as_array_mut(&mut |array| match array {
+                None => {
+                    result(Err("index used to access non-indexable object"));
+                }
+                Some(array) => {
+                    if let Some(it) = array.reflect_index_mut(*i) {
+                        result(Ok(it));
                     }
                 }
             });
@@ -202,13 +209,10 @@ trait FyroxAndLua {
     fn lua_to_fyrox<'a>(p: &mut dyn Reflect, value: &Value<'a>) -> Option<LuaResult<()>>;
 }
 
-
 impl FyroxAndLua for bool {
     fn fyrox_to_lua<'a>(p: &mut dyn Reflect, _lua: &'a Lua) -> Option<LuaResult<Value<'a>>> {
         let mut result: Option<LuaResult<Value<'a>>> = None;
-        p.downcast_ref::<bool>(&mut |p| {
-            result = p.map(|it| Ok(Value::Boolean(*it)))
-        });
+        p.downcast_ref::<bool>(&mut |p| result = p.map(|it| Ok(Value::Boolean(*it))));
         result
     }
 
@@ -216,7 +220,9 @@ impl FyroxAndLua for bool {
         let mut result: Option<LuaResult<()>> = None;
         p.downcast_mut::<Self>(&mut |p| {
             result = p.map(|it| {
-                *it = value.as_boolean().lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?;
+                *it = value
+                    .as_boolean()
+                    .lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?;
                 Ok(())
             })
         });
@@ -237,7 +243,10 @@ impl FyroxAndLua for String {
         let mut result: Option<LuaResult<()>> = None;
         p.downcast_mut::<Self>(&mut |p| {
             result = p.map(|it| {
-                *it = value.as_str().lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?.to_string();
+                *it = value
+                    .as_str()
+                    .lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?
+                    .to_string();
                 Ok(())
             })
         });
@@ -262,7 +271,10 @@ impl FyroxAndLua for PathBuf {
         let mut result: Option<LuaResult<()>> = None;
         p.downcast_mut::<Self>(&mut |p| {
             result = p.map(|it| {
-                let s = value.as_str().lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?.to_string();
+                let s = value
+                    .as_str()
+                    .lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?
+                    .to_string();
                 *it = Self::from(s);
                 Ok(())
             })
@@ -284,7 +296,10 @@ impl FyroxAndLua for ImmutableString {
         let mut result: Option<LuaResult<()>> = None;
         p.downcast_mut::<Self>(&mut |p| {
             result = p.map(|it| {
-                let s = value.as_str().lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?.to_string();
+                let s = value
+                    .as_str()
+                    .lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?
+                    .to_string();
                 *it = Self::from(s);
                 Ok(())
             })
@@ -306,7 +321,8 @@ impl FyroxAndLua for Vector3<f32> {
         let mut result: Option<LuaResult<()>> = None;
         p.downcast_mut::<Self>(&mut |p| {
             result = p.map(|it| {
-                let s = value.as_userdata()
+                let s = value
+                    .as_userdata()
                     .lua_ok_or_else(|| lua_error!("cannot assign String field with {:?}", value))?
                     .borrow::<Vector3Ud>()?;
                 *it = s.0;
@@ -316,7 +332,6 @@ impl FyroxAndLua for Vector3<f32> {
         result
     }
 }
-
 
 #[derive(Clone)]
 pub enum LuaTableKey {
@@ -328,16 +343,19 @@ pub enum LuaTableKey {
 fn format_path(path: &[LuaTableKey]) -> String {
     let mut s = String::new();
     for it in path {
-        s.push_str(match it {
-            LuaTableKey::Number(i) => format!("[{}]", i),
-            LuaTableKey::String(k) => format!(".{}", k),
-        }.as_str());
+        s.push_str(
+            match it {
+                LuaTableKey::Number(i) => format!("[{}]", i),
+                LuaTableKey::String(k) => format!(".{}", k),
+            }
+            .as_str(),
+        );
     }
     s
 }
 
 impl FromLua<'_> for LuaTableKey {
-    fn from_lua(value: Value, _lua: & Lua) -> LuaResult<Self> {
+    fn from_lua(value: Value, _lua: &Lua) -> LuaResult<Self> {
         match value {
             Value::Integer(i) => Ok(LuaTableKey::Number(i as usize)),
             Value::Number(i) => Ok(LuaTableKey::Number(i as usize)),

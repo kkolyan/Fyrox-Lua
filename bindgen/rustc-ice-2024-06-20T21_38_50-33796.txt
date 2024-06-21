@@ -1,0 +1,37 @@
+thread 'main' panicked at /rust/deps\ignore-0.4.20\src\gitignore.rs:227:9:
+path is expected to be under the root
+stack backtrace:
+   0:     0x7ffc0af3d5d3 - std::backtrace_rs::backtrace::dbghelp64::trace
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\..\..\backtrace\src\backtrace\dbghelp64.rs:91
+   1:     0x7ffc0af3d5d3 - std::backtrace_rs::backtrace::trace_unsynchronized
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\..\..\backtrace\src\backtrace\mod.rs:66
+   2:     0x7ffc0af3d5d3 - std::backtrace::Backtrace::create
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\backtrace.rs:331
+   3:     0x7ffc0af3d51a - std::backtrace::Backtrace::force_capture
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\backtrace.rs:312
+   4:     0x7ffbf26f8ad2 - memchr
+   5:     0x7ffc0af57377 - alloc::boxed::impl$50::call
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\alloc\src\boxed.rs:2076
+   6:     0x7ffc0af57377 - std::panicking::rust_panic_with_hook
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\panicking.rs:804
+   7:     0x7ff7c7c3ba79 - <unknown>
+   8:     0x7ff7c7c12649 - <unknown>
+   9:     0x7ff7c7ec764d - <unknown>
+  10:     0x7ff7c7cb04a0 - <unknown>
+  11:     0x7ff7c7b82067 - <unknown>
+  12:     0x7ff7c7b78e42 - <unknown>
+  13:     0x7ff7c7b92c2d - <unknown>
+  14:     0x7ff7c7b8eb16 - <unknown>
+  15:     0x7ff7c7b8a7bb - <unknown>
+  16:     0x7ff7c7b749b6 - <unknown>
+  17:     0x7ff7c7b751fc - <unknown>
+  18:     0x7ffc0af3bc1e - std::rt::lang_start_internal
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\rt.rs:141
+  19:     0x7ff7c7b941cc - <unknown>
+  20:     0x7ff7c7eae890 - <unknown>
+  21:     0x7ffcc5557344 - BaseThreadInitThunk
+  22:     0x7ffcc65e26b1 - RtlUserThreadStart
+
+
+rustc version: 1.81.0-nightly (d8a38b000 2024-06-19)
+platform: x86_64-pc-windows-msvc

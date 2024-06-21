@@ -1,0 +1,86 @@
+thread 'main' panicked at src\tools\rustfmt\src\expr.rs:405:13:
+internal error: entered unreachable code
+stack backtrace:
+   0:     0x7ffc0af3d5d3 - std::backtrace_rs::backtrace::dbghelp64::trace
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\..\..\backtrace\src\backtrace\dbghelp64.rs:91
+   1:     0x7ffc0af3d5d3 - std::backtrace_rs::backtrace::trace_unsynchronized
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\..\..\backtrace\src\backtrace\mod.rs:66
+   2:     0x7ffc0af3d5d3 - std::backtrace::Backtrace::create
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\backtrace.rs:331
+   3:     0x7ffc0af3d51a - std::backtrace::Backtrace::force_capture
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\backtrace.rs:312
+   4:     0x7ffbf26f8ad2 - memchr
+   5:     0x7ffc0af57377 - alloc::boxed::impl$50::call
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\alloc\src\boxed.rs:2076
+   6:     0x7ffc0af57377 - std::panicking::rust_panic_with_hook
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\panicking.rs:804
+   7:     0x7ffc0af5714f - std::panicking::begin_panic_handler::closure$0
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\panicking.rs:663
+   8:     0x7ffc0af545af - std::sys::backtrace::__rust_end_short_backtrace<std::panicking::begin_panic_handler::closure_env$0,never$>
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\sys\backtrace.rs:171
+   9:     0x7ffc0af56d66 - std::panicking::begin_panic_handler
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\panicking.rs:661
+  10:     0x7ffc0afacfa4 - core::panicking::panic_fmt
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\core\src\panicking.rs:74
+  11:     0x7ffc0afad04d - core::panicking::panic
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\core\src\panicking.rs:148
+  12:     0x7ff7c7c994e1 - <unknown>
+  13:     0x7ff7c7d12589 - <unknown>
+  14:     0x7ff7c7d2dbf0 - <unknown>
+  15:     0x7ff7c7d2527c - <unknown>
+  16:     0x7ff7c7c9aa83 - <unknown>
+  17:     0x7ff7c7c9949a - <unknown>
+  18:     0x7ff7c7d12589 - <unknown>
+  19:     0x7ff7c7d2dbf0 - <unknown>
+  20:     0x7ff7c7d2527c - <unknown>
+  21:     0x7ff7c7c9aa83 - <unknown>
+  22:     0x7ff7c7c9afba - <unknown>
+  23:     0x7ff7c7c9841c - <unknown>
+  24:     0x7ff7c7d003b6 - <unknown>
+  25:     0x7ff7c7cfb68e - <unknown>
+  26:     0x7ff7c7c972e6 - <unknown>
+  27:     0x7ff7c7ca03b8 - <unknown>
+  28:     0x7ff7c7c98300 - <unknown>
+  29:     0x7ff7c7d002fa - <unknown>
+  30:     0x7ff7c7cfb68e - <unknown>
+  31:     0x7ff7c7c972e6 - <unknown>
+  32:     0x7ff7c7ca6d3e - <unknown>
+  33:     0x7ff7c7ca9e4e - <unknown>
+  34:     0x7ff7c7cb9f2e - <unknown>
+  35:     0x7ff7c7d124ea - <unknown>
+  36:     0x7ff7c7d2dbf0 - <unknown>
+  37:     0x7ff7c7d2e73f - <unknown>
+  38:     0x7ff7c7d2527c - <unknown>
+  39:     0x7ff7c7c9aa83 - <unknown>
+  40:     0x7ff7c7c9dd5a - <unknown>
+  41:     0x7ff7c7c98ac7 - <unknown>
+  42:     0x7ff7c7d12589 - <unknown>
+  43:     0x7ff7c7d2dbf0 - <unknown>
+  44:     0x7ff7c7d2e73f - <unknown>
+  45:     0x7ff7c7d2e73f - <unknown>
+  46:     0x7ff7c7d2e73f - <unknown>
+  47:     0x7ff7c7d2527c - <unknown>
+  48:     0x7ff7c7d27963 - <unknown>
+  49:     0x7ff7c7d2a727 - <unknown>
+  50:     0x7ff7c7d314a1 - <unknown>
+  51:     0x7ff7c7d28e3a - <unknown>
+  52:     0x7ff7c7d08d96 - <unknown>
+  53:     0x7ff7c7d2959c - <unknown>
+  54:     0x7ff7c7d08d96 - <unknown>
+  55:     0x7ff7c7d2ebf7 - <unknown>
+  56:     0x7ff7c7b794bc - <unknown>
+  57:     0x7ff7c7b92c2d - <unknown>
+  58:     0x7ff7c7b8efa2 - <unknown>
+  59:     0x7ff7c7b8a7bb - <unknown>
+  60:     0x7ff7c7b749b6 - <unknown>
+  61:     0x7ff7c7b751fc - <unknown>
+  62:     0x7ffc0af3bc1e - std::rt::lang_start_internal
+                               at /rustc/d8a38b00024cd7156dea4ce8fd8ae113a2745e7f/library\std\src\rt.rs:141
+  63:     0x7ff7c7b941cc - <unknown>
+  64:     0x7ff7c7eae890 - <unknown>
+  65:     0x7ffcc5557344 - BaseThreadInitThunk
+  66:     0x7ffcc65e26b1 - RtlUserThreadStart
+
+
+rustc version: 1.81.0-nightly (d8a38b000 2024-06-19)
+platform: x86_64-pc-windows-msvc

@@ -1,11 +1,12 @@
 //! Executor with your game connected to it as a plugin.
-use fyrox::core::log::{Log, MessageKind};
+use fyrox::core::log::Log;
+use fyrox::core::log::MessageKind;
 use fyrox::engine::executor::Executor;
 
 fn main() {
     Log::set_verbosity(MessageKind::Warning);
     let mut executor = Executor::new();
-   
+
     // Dynamic linking with hot reloading.
     #[cfg(feature = "dylib")]
     {
@@ -23,7 +24,7 @@ fn main() {
     {
         use fyrox_lua::plugin::LuaPlugin;
         executor.add_plugin(LuaPlugin::default());
-    }  
-   
+    }
+
     executor.run()
 }

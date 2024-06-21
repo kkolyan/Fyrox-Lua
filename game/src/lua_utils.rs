@@ -1,3 +1,5 @@
+use fyrox::core::log::Log;
+use fyrox::core::num_traits::ToPrimitive;
 use mlua::prelude::LuaError;
 use mlua::FromLuaMulti;
 use mlua::Function;
@@ -12,8 +14,6 @@ use mlua::Value;
 use std::cell::Ref;
 use std::fmt::Display;
 use std::process::exit;
-use fyrox::core::log::Log;
-use fyrox::core::num_traits::ToPrimitive;
 
 #[macro_export]
 macro_rules! lua_error {
@@ -34,18 +34,21 @@ pub fn exit_on_error<T>(result: LuaResult<T>) -> T {
 
 pub fn log_error<T>(action_description: impl Display, result: LuaResult<T>) {
     match result {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(err) => {
-            Log::err(format!("Lua action failed: {}: {}", action_description, err));
+            Log::err(format!(
+                "Lua action failed: {}: {}",
+                action_description, err
+            ));
             println!("{}", err);
         }
     }
 }
 
 pub fn eval_func<'lua, A, R>(lua: &'lua Lua, code: &str, args: A) -> R
-    where
-        A: IntoLuaMulti<'lua>,
-        R: FromLuaMulti<'lua>,
+where
+    A: IntoLuaMulti<'lua>,
+    R: FromLuaMulti<'lua>,
 {
     let boot = lua.load(code).eval::<Function>().unwrap();
     exit_on_error(boot.call::<A, R>(args))

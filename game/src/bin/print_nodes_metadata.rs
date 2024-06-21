@@ -15,7 +15,8 @@ use fyrox::scene::light::point::PointLight;
 use fyrox::scene::light::spot::SpotLight;
 use fyrox::scene::mesh::Mesh;
 use fyrox::scene::navmesh::NavigationalMesh;
-use fyrox::scene::node::{Node, NodeTrait};
+use fyrox::scene::node::Node;
+use fyrox::scene::node::NodeTrait;
 use fyrox::scene::particle_system::ParticleSystem;
 use fyrox::scene::pivot::Pivot;
 use fyrox::scene::ragdoll::Ragdoll;
@@ -60,15 +61,23 @@ fn collect_info<T: Reflect + Visit + Default>(ctx: &mut Context, name_override: 
 }
 
 fn print_type<T: Reflect + ?Sized>(prefix: &str, name_override: Option<&str>, value: &T) {
-    println!("{}type {}", prefix, name_override.unwrap_or(value.type_name()));
+    println!(
+        "{}type {}",
+        prefix,
+        name_override.unwrap_or(value.type_name())
+    );
     value.as_array(&mut |array| {
-        if let Some(array) = array {
-
-        }
+        if let Some(array) = array {}
     });
     value.fields_info(&mut |fields| {
         for field in fields {
-            println!("{}  field {} : {}{}", prefix, field.name, field.type_name, if field.read_only { " (readonly)" } else { "" });
+            println!(
+                "{}  field {} : {}{}",
+                prefix,
+                field.name,
+                field.type_name,
+                if field.read_only { " (readonly)" } else { "" }
+            );
             print_type(format!("  {}", prefix).as_str(), None, field.reflect_value);
         }
     });

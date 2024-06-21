@@ -1,37 +1,82 @@
-use fyrox::plugin::{Plugin, PluginContext, PluginRegistrationContext};
-use mlua::{Function, Lua};
+use crate::lua_utils::log_error;
+use crate::script::LuaScript;
+use crate::script_data::ScriptData;
+use crate::script_def::ScriptDefinition;
+use crate::script_def::ScriptMetadata;
+use crate::script_object::ScriptObject;
+use fyrox::core::log::Log;
+use fyrox::core::pool::Handle;
+use fyrox::core::reflect::prelude::*;
+use fyrox::core::reflect::Reflect;
+use fyrox::core::visitor::prelude::*;
+use fyrox::core::visitor::Visit;
 use fyrox::event::Event;
 use fyrox::gui::message::UiMessage;
+use fyrox::plugin::Plugin;
+use fyrox::plugin::PluginContext;
+use fyrox::plugin::PluginRegistrationContext;
+use fyrox::scene::Scene;
+use fyrox::script::constructor::ScriptConstructor;
+use fyrox::script::Script;
+use fyrox::script::ScriptContext;
+use fyrox::walkdir::DirEntry;
+use fyrox::walkdir::WalkDir;
+use mlua::Function;
+use mlua::Lua;
+use std::ops::Deref;
+use std::ops::DerefMut;
 use std::path::Path;
 use std::sync::Arc;
-use fyrox::core::pool::Handle;
-use fyrox::core::reflect::Reflect;
-use fyrox::core::visitor::Visit;
-use fyrox::scene::Scene;
-use fyrox::{
-    core::reflect::prelude::*,
-    core::visitor::prelude::*,
-};
-use fyrox::core::log::Log;
-use fyrox::script::constructor::ScriptConstructor;
-use fyrox::script::{Script};
-use fyrox::walkdir::{DirEntry, WalkDir};
-use crate::lua_utils::log_error;
-use crate::script::ScriptMetadata;
-use crate::script::LuaScript;
-use crate::script::ScriptDefinition;
 
 #[derive(Visit, Reflect, Debug)]
 pub struct LuaPlugin {
     #[visit(skip)]
     #[reflect(hidden)]
-    pub lua: &'static Lua,
+    pub vm: &'static Lua,
+
+    #[visit(skip)]
+    #[reflect(hidden)]
+    pub failed: bool,
+}
+
+impl LuaPlugin {
+    pub fn get<'r, 'a>(sc: &'r ScriptContext<'a, '_, '_>) -> &'a LuaPlugin
+    where
+        'r: 'a,
+    {
+        return sc.plugins.get::<LuaPlugin>();
+    }
+
+    pub fn get_mut<'r, 'a, 'b>(sc: &'r mut ScriptContext<'a, '_, '_>) -> Mut<'b, LuaPlugin>
+    where
+        'r: 'b,
+        'r: 'a,
+    {
+        return Mut(sc.plugins.get_mut::<LuaPlugin>());
+    }
+}
+
+pub struct Mut<'a, T>(&'a mut T);
+
+impl<'a, T> Deref for Mut<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'a, T> DerefMut for Mut<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0
+    }
 }
 
 impl Default for LuaPlugin {
     fn default() -> Self {
         LuaPlugin {
-            lua: Box::leak(Box::new(Lua::new())),
+            vm: Box::leak(Box::new(Lua::new())),
+            failed: false,
         }
     }
 }
@@ -45,8 +90,9 @@ impl Plugin for LuaPlugin {
 
         log_error(
             "set 'package.path'",
-            lua.load("package.path = 'scripts/?.lua;scripts/?/init.lua'"
-            ).eval::<()>());
+            lua.load("package.path = 'scripts/?.lua;scripts/?/init.lua'")
+                .eval::<()>(),
+        );
 
         for entry in WalkDir::new("scripts").into_iter().flatten() {
             load_script(&context, lua, &entry);
@@ -54,7 +100,10 @@ impl Plugin for LuaPlugin {
     }
 
     fn init(&mut self, scene_path: Option<&str>, context: PluginContext) {
-        Lua::new().load("print('hello Fyrox'); print(_VERSION)").eval::<()>().unwrap();
+        Lua::new()
+            .load("print('hello Fyrox'); print(_VERSION)")
+            .eval::<()>()
+            .unwrap();
         context
             .async_scene_loader
             .request(scene_path.unwrap_or("data/scene.rgs"));
@@ -70,19 +119,27 @@ fn load_script(context: &PluginRegistrationContext, lua: &mut Lua, entry: &DirEn
         Ok(it) => it,
         Err(errs) => {
             for err in errs {
-                Log::err(format!("failed to load script from file {}: {}", &entry.path().to_string_lossy(), err));
+                Log::err(format!(
+                    "failed to load script from file {}: {}",
+                    &entry.path().to_string_lossy(),
+                    err
+                ));
             }
             return;
         }
     };
 
-    let class_loading = lua.load("return function(x) require(x) end")
+    let class_loading = lua
+        .load("return function(x) require(x) end")
         .eval::<Function>()
-        .and_then(|it| it.call::<_, ()>(metadata.class.clone()));
+        .and_then(|it| it.call::<_, ()>(metadata.class));
     match class_loading {
         Ok(_) => {}
         Err(err) => {
-            Log::err(format!("Failed to load Lua class {:?}: {}", &metadata.class, err));
+            Log::err(format!(
+                "Failed to load Lua class {:?}: {}",
+                &metadata.class, err
+            ));
             return;
         }
     }
@@ -103,12 +160,17 @@ fn load_script(context: &PluginRegistrationContext, lua: &mut Lua, entry: &DirEn
             uuid,
             ScriptConstructor {
                 constructor: Box::new(move || {
-                    Script::new(LuaScript::new(&definition))
+                    Script::new(LuaScript {
+                        data: ScriptData::Packed(ScriptObject::new(&definition)),
+                    })
                 }),
                 name: name.to_string(),
                 source_path: entry.path().to_string_lossy().to_string().leak(),
                 assembly_name,
             },
         );
-    Log::info(format!("script registered: {}", entry.path().to_string_lossy()));
+    Log::info(format!(
+        "script registered: {}",
+        entry.path().to_string_lossy()
+    ));
 }
