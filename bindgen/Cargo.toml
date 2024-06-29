@@ -9,4 +9,20 @@ rustfmt = "0.10.0"
 syn = {version = "2.0.66", features = ["full", "extra-traits"]}
 rustdoc-types = "0.26.0"
 rustdoc-json = "0.9.1"
+serde = "1.0.203"
 serde_json = "1.0.117"
+quote = "1.0.36"
+to_vec = "0.1.0"
+extend = "1.2.0"
+proc-macro2 = {version = "1.0.86", features = ["span-locations"]}
+itertools = "0.13.0"
+hir = {path = "c:/dev/rust/rust-analyzer/crates/hir"}
+hir-ty = {path = "c:/dev/rust/rust-analyzer/crates/hir-ty"}
+project-model = {path = "c:/dev/rust/rust-analyzer/crates/project-model"}
+paths = {path = "c:/dev/rust/rust-analyzer/crates/paths"}
+base-db = {path = "c:/dev/rust/rust-analyzer/crates/base-db"}
+ide = {path = "c:/dev/rust/rust-analyzer/crates/ide"}
+vfs = {path = "c:/dev/rust/rust-analyzer/crates/vfs"}
+load-cargo = {path = "c:/dev/rust/rust-analyzer/crates/load-cargo"}
+syntax = {path = "c:/dev/rust/rust-analyzer/crates/syntax"}
+camino = "1.1.7"
